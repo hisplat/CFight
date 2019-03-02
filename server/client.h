@@ -2,12 +2,16 @@
 #pragma once
 
 #include "socket.h"
+#include "player.h"
+
+#define CLIENT_INIT 0
+#define CLIENT_GAME 1
 
 typedef struct __client_t {
     socket_t socket;
-    int speed;
-    int attack;
-    int hit;
+    player_t * player;
+
+    int status;
 
     struct __client_t * next;
     struct __client_t * prev;

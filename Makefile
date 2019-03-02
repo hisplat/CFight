@@ -23,6 +23,7 @@ COMMON_DEPS := $(common_src_files:.cpp=.h)
 server_src_files := server/main.c
 server_src_files += server/game.c
 server_src_files += server/client.c
+server_src_files += server/player.c
 SERVER_OBJS := $(server_src_files:.c=.o)
 SERVER_DEPS := $(server_src_files:.c=.d)
 

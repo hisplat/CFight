@@ -23,9 +23,8 @@ client_t * client_create()
     client_t * c = (client_t*)malloc(sizeof(client_t));
 
     c->socket = SOCKET_T_INITIALIZER;
-    c->speed = 0;
-    c->attack = 0;
-    c->hit = 0;
+    c->player = NULL;
+    c->status = CLIENT_INIT;
     c->next = NULL;
     c->prev = NULL;
     if (client_head == NULL) {

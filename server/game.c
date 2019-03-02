@@ -12,21 +12,79 @@
 #include "client.h"
 
 
+static void on_client_login(client_t * client, char * arg);
+static void on_client_attack(client_t * client, char * arg);
+
+static struct {
+    const char * command;
+    void (* handler)(client_t * client, char * arg);
+} command_table[] = {
+    { "LOGIN", on_client_login },
+    { "ATTACK", on_client_attack },
+    { NULL, NULL },
+};
+
+typedef struct {
+    int playerid;
+    int hitpoint;
+} mapnode;
+static mapnode gamemap[MAP_HEIGHT][MAP_WIDTH];
+
+static void on_client_login(client_t * client, char * token)
+{
+    cf_log("on client login by token: %s.\n", token);
+    player_t * p = find_player_by_token(token);
+    if (p != NULL) {
+        client->player = p;
+        client->status = CLIENT_GAME;
+        cf_log("player '%s' joined game.\n", p->name);
+    }
+}
+
+static void on_client_attack(client_t * client, char * arg)
+{
+}
+
+
 void read_client_data(client_t * client)
 {
     char buffer[1024];
-    int ret = socket_recv(client->socket, buffer, sizeof(buffer));
+    int ret = socket_recv(client->socket, buffer, sizeof(buffer) - 1);
+    buffer[ret] = '\0';
     cf_debug("%d bytes read.", ret);
     if (ret <= 0) {
         char ip[100];
         cf_log("[%s:%d] disconnected.\n", socket_get_remote_ip(client->socket, ip, sizeof(ip)), socket_get_remote_port(client->socket));
         client_destroy(client);
+        return;
+    }
+
+    char * p = buffer;
+    char * arg = NULL;
+    while (*p != ' ' && *p != '\0') {
+        p++;
+    }
+    if (*p == ' ') {
+        arg = (p + 1);
+        while (arg[strlen(arg) - 1] == '\n' || arg[strlen(arg) - 1] == '\r') {
+            arg[strlen(arg) - 1] = '\0';
+        }
+    }
+    *p = '\0';
+
+    cf_debug("command = [%s], arg = [%s]\n", buffer, arg);
+
+    for (int i = 0; command_table[i].command != NULL; i++) {
+        if (strcmp(command_table[i].command, buffer) == 0) {
+            command_table[i].handler(client, arg);
+        }
     }
 }
 
 int main_loop(int port)
 {
     client_init();
+    load_all_players();
 
     socket_t main_socket = socket_create_tcp();
     int mainfd = socket_fd(main_socket);

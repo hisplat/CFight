@@ -3,23 +3,19 @@
 var net = require("net");
 var game = require("./game.js");
 
+var players = [];
 
-var create_map = function(w, h) {
-    var gamemap = [];
-    for (var y = 0; y < h; y++) {
-        gamemap[y] = [];
-        for (var x = 0; x < w; x++) {
-            gamemap[y][x] = 0;
+
+var find_player = function(socket) {
+    for (var k in players) {
+        if (players[k].socket == socket) {
+            return players[k];
         }
     }
-    return gamemap;
-};
-
+    return null;
+}
 
 var main = function() {
-    var gamemap = create_map(20, 20);
-    console.debug(gamemap);
-
     var server = net.createServer(function(connection) {
         console.log("client connected: ");
         console.debug(connection);
@@ -28,6 +24,11 @@ var main = function() {
         });
         connection.on("data", function(d) {
             console.debug(d);
+            var op = d.op;
+            if (op == "login") {
+            } else if (op == "observer") {
+            } else if (op == "game") {
+            }
         });
         connection.pipe(connection);
     });

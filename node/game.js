@@ -45,7 +45,7 @@ exports = module.exports = {
             }
         }
         if (empty.length == 0) {
-            return null,
+            return null;
         }
         var index = helper.rand(0, empty.length - 1);
         return empty[index];

@@ -135,6 +135,7 @@ void setLoggingStream(std::ostream& o);
 extern "C" {
 #endif
 void logging_printf(const char * filename, const char * func, int line, const char * fmt, ...);
+long long get_uptime_millis();
 #ifdef __cplusplus
 }
 #endif

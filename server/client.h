@@ -12,6 +12,9 @@ typedef struct __client_t {
     player_t * player;
 
     int status;
+    int speed_left;
+
+    int in_turn;
 
     struct __client_t * next;
     struct __client_t * prev;
@@ -24,4 +27,11 @@ void client_destroy(client_t *c);
 
 void client_reset_iterator();
 client_t * client_next();
+
+client_t * find_client_by_player(player_t* p);
+
+typedef struct client_iterator_t * client_iterator;
+client_iterator client_begin_iterator();
+client_t * client_iterator_next(client_iterator iter);
+void client_end_iterator(client_iterator iter);
 

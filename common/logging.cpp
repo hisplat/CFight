@@ -166,3 +166,15 @@ void logging_printf(const char * filename, const char * func, int line, const ch
     }  
 }
 
+long long get_uptime_millis()
+{
+    struct timespec ts; 
+    int ret = clock_gettime(CLOCK_MONOTONIC, &ts);
+    if (ret != 0) {
+        return 0;
+    }   
+    long long n = ts.tv_sec * 1000ll + ts.tv_nsec / 10000000000ll;
+    return n;
+}
+
+

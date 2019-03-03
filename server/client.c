@@ -10,6 +10,9 @@ static client_t * client_head = NULL;
 static client_t * client_tail = NULL;
 static client_t * current_client = NULL;
 
+struct client_iterator_t {
+    client_t * current;
+};
 
 void client_init()
 {
@@ -25,6 +28,8 @@ client_t * client_create()
     c->socket = SOCKET_T_INITIALIZER;
     c->player = NULL;
     c->status = CLIENT_INIT;
+    c->speed_left = 0;
+    c->in_turn = 0;
     c->next = NULL;
     c->prev = NULL;
     if (client_head == NULL) {
@@ -72,5 +77,39 @@ client_t * client_next()
     }
     return t;
 }
+
+client_t * find_client_by_player(player_t * p)
+{
+    client_t * c = client_head;
+    while (c != NULL) {
+        if (c->player == p) {
+            return c;
+        }
+        c = c->next;
+    }
+    return NULL;
+}
+
+client_iterator client_begin_iterator()
+{
+    struct client_iterator_t * iterator = (struct client_iterator_t*)malloc(sizeof(struct client_iterator_t));
+    iterator->current = client_head;
+    return iterator;
+}
+
+client_t * client_iterator_next(client_iterator iter)
+{
+    client_t * c = iter->current;
+    if (iter->current != NULL) {
+        iter->current = iter->current->next;
+    }
+    return c;
+}
+
+void client_end_iterator(client_iterator iter)
+{
+    free(iter);
+}
+
 
 

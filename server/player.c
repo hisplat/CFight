@@ -23,11 +23,11 @@ static void load_player_from_file(const char * filename)
     fscanf(fp, "%d %d %d", &(p->speed), &(p->attack), &(p->hit));
     fclose(fp);
 
-    p->id = total_players;
+    p->id = total_players + 1;
     players[total_players] = p;
     total_players++;
 
-    cf_log("player '%s' loaded.\n", p->name);
+    cf_log("player '%d:%s(%d, %d, %d)' loaded.\n", p->id, p->name, p->speed, p->attack, p->hit);
 }
 
 void load_all_players()

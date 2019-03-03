@@ -11,7 +11,7 @@ CXXFLAGS := -Wall -Werror -O2 -g -Wunused -Wunreachable-code -Wno-unused-paramet
 CFLAGS := -Wall -Werror -O2 -g -Wunused -Wunreachable-code -Wno-unused-parameter -Wno-unused-result -Wno-deprecated -fPIC -std=c99
 INCLUDES = -Icommon -I.
 
-LINKS	= -L. -ldl -rdynamic
+LINKS	= -L. -ldl -rdynamic -lrt
 LIBS	= -lpthread -lrt
 
 common_src_files := common/logging.cpp

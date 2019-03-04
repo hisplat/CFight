@@ -9,7 +9,7 @@ LD	:= clang++
 AR	:= ar
 CXXFLAGS := -Wall -Werror -O2 -g -Wunused -Wunreachable-code -Wno-unused-parameter -Wno-unused-result -Wno-deprecated -fPIC -std=c++11 
 CFLAGS := -Wall -Werror -O2 -g -Wunused -Wunreachable-code -Wno-unused-parameter -Wno-unused-result -Wno-deprecated -fPIC -std=c99
-INCLUDES = -Icommon -I.
+INCLUDES = -Icommon -I. -Iclient
 
 LINKS	= -L. -ldl -rdynamic -lrt
 LIBS	= -lpthread -lrt
@@ -28,14 +28,31 @@ server_src_files += server/player.c
 SERVER_OBJS := $(server_src_files:.c=.o)
 SERVER_DEPS := $(server_src_files:.c=.d)
 
+client_src_files := client/fighter.c
+CLIENT_OBJS := $(client_src_files:.c=.o)
 
-all: cfserver
+boxer_src_files := fighter/boxer.c
+BOXER_OBJS := $(boxer_src_files:.c=.o)
+
+all: cfserver libclient.so boxer
 
 libcommon.a: $(COMMON_OBJS)
 	@echo Linking $@ ...
 	ar rv libcommon.a $(COMMON_OBJS)
 	@echo -------------------------------------------
 	echo done.
+
+libclient.so: $(CLIENT_OBJS) libcommon.a
+	@echo Linking $@ ...
+	$(LD) $(CLIENT_OBJS) $(LINKS) $(LIBS) libcommon.a -shared -o$@
+	@echo -------------------------------------------
+	@echo done.
+
+boxer: $(BOXER_OBJS) libclient.so
+	@echo Linking $@ ...
+	$(LD) $(BOXER_OBJS) $(LINKS) $(LIBS) -L. -lclient -o$@
+	@echo -------------------------------------------
+	@echo done.
 
 cfserver: $(SERVER_OBJS) libcommon.a
 	@echo Linking $@ ...

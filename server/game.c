@@ -67,7 +67,6 @@ static void reset_current_client()
     } else {
         cf_log("[gametime: %d] now no one is in turn.\n", current_game_time);
     }
-    need_reset_current_client = 0;
 }
 
 static void broadcast_gameturn()
@@ -156,8 +155,6 @@ static void broadcast_gamemap()
     while ((client = client_next()) != NULL) {
         socket_send(client->socket, message, strlen(message) + 1);
     }
-
-    gamemap_changed = 0;
 }
 
 
@@ -175,6 +172,7 @@ static void on_client_login(client_t * client, char * token)
             client->player = p;
             client->status = CLIENT_GAME;
             cf_log("player '%s' joined game.\n", p->name);
+            init_game_map();
             gamemap_changed = 1;
         } else {
             cf_error("Not implemented yet.\n");
@@ -365,11 +363,13 @@ int main_loop(int port, unsigned int seed)
 
         if (need_reset_current_client) {
             reset_current_client();
+            need_reset_current_client = 0;
             broadcast_gameturn();
         }
 
         if (gamemap_changed) {
             broadcast_gamemap();
+            gamemap_changed = 0;
         }
     }
     return 0;

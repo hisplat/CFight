@@ -252,6 +252,9 @@ void read_client_data(client_t * client)
         if (client->in_turn) {
             need_reset_current_client = 1;
         }
+        if (client->player != NULL) {
+            gamemap_changed = 1;
+        }
         client_destroy(client);
         return;
     }

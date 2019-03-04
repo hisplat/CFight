@@ -15,6 +15,7 @@ LINKS	= -L. -ldl -rdynamic -lrt
 LIBS	= -lpthread -lrt
 
 common_src_files := common/logging.cpp
+common_src_files += common/dump.cpp
 common_src_files += common/socket.cpp
 common_src_files += common/buffer.cpp
 COMMON_OBJS := $(common_src_files:.cpp=.o)

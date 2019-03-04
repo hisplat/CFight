@@ -1,0 +1,49 @@
+<link rel="stylesheet" href="[:app]/css/checkbox.css">
+<div id="page-content">
+    <table class="table table-stripped table-hover">
+        <thead>
+            <tr>
+                <th>name</th>
+                <th>value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="(option, optionkey) in options">
+                <td class="col-md-2">{{option.title}}</td>
+                <td>
+                    <div v-if="option.type == 1">
+                        <div class="checkbox-slider--b-flat checkbox-slider-md" v-bind:ok="optionkey" v-on:change="update"><label><input type="checkbox" v-model="option.value" /><span></span></label></div>
+                    </div>
+                    <div v-if="option.type == 0">
+                        <span>{{option.value}}</span><button type="button" class="close" v-bind:ok="optionkey" v-on:click="update"><i class="fa fa-fw fa-edit"></i></button>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="modal fade" id="settingModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="settingModalLabel">修改设置</h4>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group" id="settingForm">
+                        <label for="settingValue">{{modal.title}}</label>
+                        <input type="text" class="form-control" id="settingValue" placeholder="" v-model="modal.value">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" id="ensure" v-on:click="ensure">确认</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+

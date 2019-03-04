@@ -12,6 +12,7 @@
 
 #include "logging.h"
 #include "client.h"
+#include "dump.h"
 
 
 static void on_client_login(client_t * client, char * arg);
@@ -174,6 +175,7 @@ static void on_client_login(client_t * client, char * token)
             client->player = p;
             client->status = CLIENT_GAME;
             cf_log("player '%s' joined game.\n", p->name);
+            gamemap_changed = 1;
         } else {
             cf_error("Not implemented yet.\n");
         }
@@ -240,6 +242,8 @@ void read_client_data(client_t * client)
 {
     char buffer[1024];
     int ret = socket_recv(client->socket, buffer, sizeof(buffer) - 1);
+
+    // dump(buffer, ret);
     buffer[ret] = '\0';
     cf_debug("%d bytes read.", ret);
     if (ret <= 0) {

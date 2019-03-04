@@ -1,99 +1,140 @@
 
-var helper = require("./helper.js");
 
-
-// init -> addplayer ->  grow -> attack(player, position) -> grou -> attach -> grou -> attack ...
-//
-// status:
-//      0. offline
-//      1. gaming 
+var net = require("net");
+const { StringDecoder } = require("string_decoder");
 
 exports = module.exports = {
-    parties: [],
-    gamemap: [],
-    m_w: 0,
-    m_h: 0,
+    gameinfo: {
+        gamemap: null,
+        players: [],
+        currentplayer: 0,
+    },
+    listener: null,
 
-    init: function(w, h) {
+    listen: function(callback) {
+        this.listener = callback;
+    },
+
+    init_gamemap: function(w, h) {
+        this.gameinfo.gamemap = [];
         for (var y = 0; y < h; y++) {
-            gamemap[y] = [];
+            this.gameinfo.gamemap[y] = [];
             for (var x = 0; x < w; x++) {
-                gamemap[y][x] = {
-                    uid: 0,
-                    hp: 0,
-                };
+                this.gameinfo.gamemap[y].push({
+                    p: 0,
+                    h: 0,
+                });
             }
         }
     },
 
-    findparty: function(name) {
-        for (var k in parties) {
-            if (parties[k].name == name) {
-                return k;
-            }
-        }
-        return -1;
-    },
+    update_gameinfo: function(content) {
+        var data = content.slice(4);
+        data = data.trim();
 
-    findempty: function() {
-        var empty = [];
-        for (var y in gamemap) {
-            for (var x in gamemap[y]) {
-                if (gamemap[y][x].uid == 0) {
-                    empty.push({x: x, y: y});
+        var arrs = data.split("\n");
+
+        // console.debug(arrs);
+        const kInit = 0;
+        const kInfo = 1;
+        const kMap = 2;
+        const kHit = 3;
+        const kPlayers = 4;
+
+        var current = kInit;
+        var current_row = 0;
+        for (var k in arrs) {
+            var line = arrs[k];
+            line = line.trim();
+            if (line == "") {
+                continue;
+            }
+            // console.debug('line = ' + line);
+
+            if (line == "[info]") {
+                current = kInfo;
+                console.debug("parse info");
+            } else if (line == "[map]") {
+                current = kMap;
+                current_row = 0;
+                console.debug("parse map");
+            } else if (line == "[hit]") {
+                current = kHit;
+                current_row = 0;
+                console.debug("parse hit");
+            } else if (line == "[players]") {
+                current = kPlayers;
+                this.gameinfo.players = [];
+                console.debug("parse players");
+            } else {
+                if (current == kInfo) {
+                    var scs = line.split(" ");
+                    var w = scs[0];
+                    var h = scs[1];
+                    this.init_gamemap(w, h);
+                } else if (current == kMap) {
+                    var ids = line.split(" ");
+                    for (var k in ids) {
+                        this.gameinfo.gamemap[current_row][k].p = ids[k];
+                    }
+                    current_row++;
+                } else if (current == kHit) {
+                    var ids = line.split(" ");
+                    for (var k in ids) {
+                        this.gameinfo.gamemap[current_row][k].h = ids[k];
+                    }
+                    current_row++;
+                } else if (current == kPlayers) {
+                    // console.debug(line);
+
+                    var pss = line.split(":");
+                    if (pss.length != 2) {
+                        continue;
+                    }
+
+                    this.gameinfo.players.push({
+                        playerid: pss[0],
+                        name: pss[1].trim(),
+                    });
+                } else {
                 }
             }
         }
-        if (empty.length == 0) {
-            return null;
-        }
-        var index = helper.rand(0, empty.length - 1);
-        return empty[index];
     },
 
-    addparty: function(name, option) {
-        if (option.speed + option.attack + option.hit != 100) {
-            return -1;
-        }
-        var pk = findparty(name);
-        if (party == -1) {
-            var loc = findemtpy();
-            if (loc == null) {
-                return -2;
+    update_gameturn: function(content) {
+    },
+
+    connect: function(callback) {
+        socket = new net.Socket();
+        socket.connect(11233, 'localhost');
+
+        socket.on("connect", function() {
+            // socket.write("LOGIN TOKEN_BOXER");
+        });
+
+        socket.on("end", function() {
+        });
+
+        var that = this;
+        socket.on("data", function(data) {
+            const decoder = new StringDecoder("utf8");
+            var content = decoder.write(data);
+            // console.debug(content);
+
+            var command = content.split(/\s/, 1);
+            console.debug(command);
+            if (command[0] == "GAME") {
+                that.update_gameinfo(content);
+            } else if (command[0] == "TURN") {
+                that.update_gameturn(content);
             }
-
-            var newparty = {
-                name: name,
-                speed: option.speed,
-                attack: option.attack,
-                hit: option.hit,
-                home: loc,
-                stat: 1,
-            };
-            parties.push(party);
-
-            return parties.length - 1;
-        } else {
-            parties[pk].stat = 1;
-            return pk;
-        }
-        return 0;
+            callback(that.gameinfo);
+            if (that.listener != null) {
+                that.listener(that.gameinfo);
+            }
+        });
     },
-
-    grow: function() {
-    },
-
-    attack: function() {
-    },
-
-    place: function(name, loc) {
-        var uid = findparty(name);
-        if (uid == -1) {
-            return;
-        }
-        gamemap[loc.y][loc.x] = {
-        };
-    },
-};
+}
 
 

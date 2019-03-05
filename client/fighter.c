@@ -33,6 +33,8 @@ struct gameinfo_t {
     int player_iterator;
     int current_player;
     int myplayerid;
+    int attack_x;
+    int attack_y;
 };
 
 static socket_t sock = SOCKET_T_INITIALIZER;
@@ -44,7 +46,8 @@ static char * parse_gameinfo(char * data)
     const int INFO = 1;
     const int MAP = 2;
     const int HIT = 3;
-    const int PLAYERS = 4;
+    const int ATTACK = 4;
+    const int PLAYERS = 5;
 
     int current_status = INIT;
     int row = 0;
@@ -84,6 +87,8 @@ static char * parse_gameinfo(char * data)
         } else if (strcmp(line, "[hit]") == 0) {
             current_status = HIT;
             row = 0;
+        } else if (strcmp(line, "[attack]") == 0) {
+            current_status = ATTACK;
         } else if (strcmp(line, "[players]") == 0) {
             current_status = PLAYERS;
             row = 0;
@@ -154,6 +159,11 @@ static char * parse_gameinfo(char * data)
                 snprintf(the_game.players[row].name, 64, "%s", p);
                 row++;
                 the_game.player_count = row;
+            } else if (current_status == ATTACK) {
+                int x, y;
+                sscanf(line, "%d %d", &x, &y);
+                the_game.attack_x = x;
+                the_game.attack_y = y;
             } else {
                 cf_warning("ignore current line: [%s]\n", line);
             }
@@ -216,7 +226,7 @@ int fighter_loop(gameinfo_callback gicb, gameturn_callback gtcb)
         } else {
             char buffer[40960];
             ret = socket_recv(sock, buffer, sizeof(buffer) - 1);
-            cf_debug("%d bytes read.\n", ret);
+            // cf_debug("%d bytes read.\n", ret);
 
             if (ret <= 0) {
                 cf_error("socket_recv fail: %d:%s\n", errno, strerror(errno));
@@ -277,6 +287,16 @@ int gameinfo_get_mapwidth(gameinfo info)
 int gameinfo_get_mapheight(gameinfo info)
 {
     return info->height;
+}
+
+int gameinfo_get_attack_x(gameinfo info)
+{
+    return info->attack_x;
+}
+
+int gameinfo_get_attack_y(gameinfo info)
+{
+    return info->attack_y;
 }
 
 int fighter_attack(int x, int y)

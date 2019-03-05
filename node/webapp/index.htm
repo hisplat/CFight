@@ -32,7 +32,7 @@
                         <tr v-for="p in gameinfo.players">
                             <td><div class="mapnode" v-bind:style="makecolor(p.playerid)"></div></td>
                             <td>{{p.name}}</td>
-                            <td>0</td>
+                            <td>{{p.score}}</td>
                         </tr>
                     </table>
                 </div>
@@ -41,8 +41,10 @@
                 </div>
             </div>
             <div class="border-l gamemap col-md-9" v-if="gameinfo != null">
-                <div v-for="row in gameinfo.gamemap" class="mapline">
-                    <div class="mapnode" v-for="col in row" v-bind:class="{ 'empty': col.p == 0 }" v-bind:style="makecolor(col.p)" v-bind:p="col.p" v-bind:h="col.h"></div>
+                <div v-for="(row, y) in gameinfo.gamemap" class="mapline">
+                    <div class="mapnode" v-for="(col, x) in row" v-bind:class="{ 'empty': col.p == 0 }" v-bind:style="makecolor(col.p)" v-bind:p="col.p" v-bind:h="col.h">
+                        <div v-if="x == gameinfo.attack.x && y == gameinfo.attack.y" class="attack">X</div>
+                    </div>
                 </div>
             </div>
         </div>

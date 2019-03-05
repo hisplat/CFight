@@ -8,6 +8,10 @@ exports = module.exports = {
         gamemap: null,
         players: [],
         currentplayer: 0,
+        attack: {
+            x: -1,
+            y: -1,
+        },
     },
     listener: null,
 
@@ -39,7 +43,8 @@ exports = module.exports = {
         const kInfo = 1;
         const kMap = 2;
         const kHit = 3;
-        const kPlayers = 4;
+        const kAttack = 4;
+        const kPlayers = 5;
 
         var current = kInit;
         var current_row = 0;
@@ -62,6 +67,8 @@ exports = module.exports = {
                 current = kHit;
                 current_row = 0;
                 console.debug("parse hit");
+            } else if (line == "[attack]") {
+                current = kAttack;
             } else if (line == "[players]") {
                 current = kPlayers;
                 this.gameinfo.players = [];
@@ -96,6 +103,12 @@ exports = module.exports = {
                         playerid: pss[0],
                         name: pss[1].trim(),
                     });
+                } else if (current == kAttack) {
+                    var scs = line.split(" ");
+                    var x = scs[0];
+                    var y = scs[1];
+                    this.gameinfo.attack.x = x;
+                    this.gameinfo.attack.y = y;
                 } else {
                 }
             }

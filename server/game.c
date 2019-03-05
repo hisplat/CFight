@@ -41,6 +41,8 @@ static int current_game_time = 0;
 static client_t * current_client = NULL;
 static int need_reset_current_client = 0;
 static int current_client_timeout = 0;
+static int current_attack_location_x = -1;
+static int current_attack_location_y = -1;
 
 #define GAME_STATUS_INIT 0
 #define GAME_STATUS_PLAYING 1
@@ -155,6 +157,8 @@ static void update_gameinfo(game_sender sender, void * arg)
         sprintf(message + strlen(message), "\n");
     }
 
+    sprintf(message + strlen(message), "[attack]\n%d %d\n", current_attack_location_x, current_attack_location_y);
+
     sprintf(message + strlen(message), "[players]\n");
 
     client_t * client = NULL;
@@ -194,7 +198,8 @@ static void on_client_login(client_t * client, char * token)
             socket_send(client->socket, message, strlen(message) + 1);
 
             init_game_map();
-            gamemap_changed = 1; } else {
+            gamemap_changed = 1;
+        } else {
             cf_error("Not implemented yet.\n");
         }
     }
@@ -217,6 +222,9 @@ static void on_client_attack(client_t * client, char * arg)
         cf_warning("not a valid position: (%d, %d)\n", x, y);
         return;
     }
+
+    current_attack_location_x = x;
+    current_attack_location_y = y;
 
     mapnode * node = &(gamemap[y][x]);
     if (node->playerid == 0) {

@@ -35,6 +35,22 @@ $(document).ready(function() {
     var socket = io();
     socket.on("info", function(o) {
         console.debug(o);
+
+        for (var k in o.players) {
+            o.players[k].score = 0;
+        }
+
+        for (var y in o.gamemap) {
+            for (var x in o.gamemap[y]) {
+                var node = o.gamemap[y][x];
+                for (var k in o.players) {
+                    if (o.players[k].playerid == node.p) {
+                        o.players[k].score ++;
+                    }
+                }
+            }
+        }
+
         page.gameinfo = o;
     });
 

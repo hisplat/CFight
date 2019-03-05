@@ -289,6 +289,7 @@ body { font-family: "Microsoft YaHei","Lato","Helvetica Neue",Arial,Helvetica,sa
     /* border: solid 1px #eee; */
     float: left;
 }
+
 .mapnode.empty {
     border: solid 1px #eee;
 }
@@ -296,7 +297,13 @@ body { font-family: "Microsoft YaHei","Lato","Helvetica Neue",Arial,Helvetica,sa
 .mapline {
     height: 20px;
 }
+
 .gamemap {
     /* border: solid 1px #ccc; */
+}
+
+.attack {
+    color: white;
+    text-align: center;
 }
 

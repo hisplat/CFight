@@ -32,13 +32,23 @@ client_src_files := client/fighter.c
 CLIENT_OBJS := $(client_src_files:.c=.o)
 
 boxer_src_files := fighter/boxer.cpp
+creeper_src_files := fighter/creeper.cpp
+chaos_src_files := fighter/chaos.cpp
 BOXER_OBJS := $(boxer_src_files:.cpp=.o)
+CREEPER_OBJS := $(creeper_src_files:.cpp=.o)
+CHAOS_OBJS := $(chaos_src_files:.cpp=.o)
 
-all: cfserver libclient.so boxer
+all: cfserver boxer creeper chaos
 
 libcommon.a: $(COMMON_OBJS)
 	@echo Linking $@ ...
 	ar rv libcommon.a $(COMMON_OBJS)
+	@echo -------------------------------------------
+	echo done.
+
+libclient.a: $(CLIENT_OBJS)
+	@echo Linking $@ ...
+	ar rv libclient.a $(CLIENT_OBJS)
 	@echo -------------------------------------------
 	echo done.
 
@@ -48,9 +58,21 @@ libclient.so: $(CLIENT_OBJS) libcommon.a
 	@echo -------------------------------------------
 	@echo done.
 
-boxer: $(BOXER_OBJS) libclient.so
+boxer: $(BOXER_OBJS) libclient.a libcommon.a
 	@echo Linking $@ ...
-	$(LD) $(BOXER_OBJS) $(LINKS) $(LIBS) -L. -lclient -o$@
+	$(LD) $(BOXER_OBJS) $(LINKS) $(LIBS) libclient.a libcommon.a -o$@
+	@echo -------------------------------------------
+	@echo done.
+
+creeper: $(CREEPER_OBJS) libclient.a libcommon.a
+	@echo Linking $@ ...
+	$(LD) $(CREEPER_OBJS) $(LINKS) $(LIBS) libclient.a libcommon.a -o$@
+	@echo -------------------------------------------
+	@echo done.
+
+chaos: $(CHAOS_OBJS) libclient.a libcommon.a
+	@echo Linking $@ ...
+	$(LD) $(CHAOS_OBJS) $(LINKS) $(LIBS) libclient.a libcommon.a -o$@
 	@echo -------------------------------------------
 	@echo done.
 

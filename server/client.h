@@ -6,6 +6,7 @@
 
 #define CLIENT_INIT 0
 #define CLIENT_GAME 1
+#define CLIENT_LOST 2
 
 typedef struct __client_t {
     socket_t socket;

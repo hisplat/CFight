@@ -46,6 +46,8 @@ static int current_attack_location_y = -1;
 
 #define GAME_STATUS_INIT 0
 #define GAME_STATUS_PLAYING 1
+#define GAME_STATUS_DONE 2
+
 static int game_status = GAME_STATUS_INIT;
 
 typedef void (*game_sender)(const char * message, int len, void * arg);
@@ -139,7 +141,7 @@ static void update_gameinfo(game_sender sender, void * arg)
     char message[40960] = {0};
 
     strcpy(message + strlen(message), "GAME\n");
-    sprintf(message + strlen(message), "[info]\n%d %d\n", MAP_WIDTH, MAP_HEIGHT);
+    sprintf(message + strlen(message), "[info]\n%d %d %d\n", MAP_WIDTH, MAP_HEIGHT, current_game_time);
 
     sprintf(message + strlen(message), "[map]\n");
     for (int y = 0; y < MAP_HEIGHT; y++) {
@@ -205,6 +207,15 @@ static void on_client_login(client_t * client, char * token)
     }
 }
 
+static mapnode* get_mapnode(int x, int y)
+{
+    if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
+        cf_warning("not a valid position: (%d, %d)\n", x, y);
+        return NULL;
+    }
+    return &gamemap[y][x];
+}
+
 static void on_client_attack(client_t * client, char * arg)
 {
     int x = -1;
@@ -218,7 +229,24 @@ static void on_client_attack(client_t * client, char * arg)
         return;
     }
 
-    if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
+    mapnode * node = get_mapnode(x, y);
+    if (node == NULL) {
+        cf_warning("not a valid position: (%d, %d)\n", x, y);
+        return;
+    }
+    mapnode * up = get_mapnode(x, y - 1);
+    mapnode * down = get_mapnode(x, y + 1);
+    mapnode * left = get_mapnode(x - 1, y);
+    mapnode * right = get_mapnode(x + 1, y);
+
+    int valid = 0;
+    if ((up != NULL && up->playerid == client->player->id)
+        || (down != NULL && down->playerid == client->player->id)
+        || (left != NULL && left->playerid == client->player->id)
+        || (right != NULL && right->playerid == client->player->id)) {
+        valid = 1;
+    }
+    if (!valid) {
         cf_warning("not a valid position: (%d, %d)\n", x, y);
         return;
     }
@@ -226,7 +254,6 @@ static void on_client_attack(client_t * client, char * arg)
     current_attack_location_x = x;
     current_attack_location_y = y;
 
-    mapnode * node = &(gamemap[y][x]);
     if (node->playerid == 0) {
         node->playerid = client->player->id;
         node->hitpoint = client->player->hit;
@@ -278,7 +305,7 @@ static void gamemap_grow()
 
 static void on_game_tick()
 {
-    if (game_status == GAME_STATUS_INIT) {
+    if (game_status != GAME_STATUS_PLAYING) {
         // game not started yet.
         return;
     }
@@ -320,6 +347,12 @@ static void on_game_tick()
             client->in_turn = 0;
         }
     }
+
+#if MAX_GAME_TIME > 0
+    if (current_game_time >= MAX_GAME_TIME) {
+        game_status = GAME_STATUS_DONE;
+    }
+#endif
 }
 
 void read_client_data(client_t * client)

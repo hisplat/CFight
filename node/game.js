@@ -8,6 +8,7 @@ exports = module.exports = {
         gamemap: null,
         players: [],
         currentplayer: 0,
+        round: 0,
         attack: {
             x: -1,
             y: -1,
@@ -78,7 +79,9 @@ exports = module.exports = {
                     var scs = line.split(" ");
                     var w = scs[0];
                     var h = scs[1];
+                    var r = scs[2];
                     this.init_gamemap(w, h);
+                    this.gameinfo.round = r;
                 } else if (current == kMap) {
                     var ids = line.split(" ");
                     for (var k in ids) {

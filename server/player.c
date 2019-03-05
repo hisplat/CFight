@@ -70,3 +70,13 @@ player_t * find_player_by_token(const char * token)
     return NULL;
 }
 
+player_t * find_player_by_id(int id)
+{
+    for (int i = 0; i < total_players; i++) {
+        if (players[i]->id == id) {
+            return players[i];
+        }
+    }
+    return NULL;
+}
+

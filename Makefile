@@ -7,8 +7,8 @@ LD	:= clang++
 # LD	:= g++
 
 AR	:= ar
-CXXFLAGS := -Wall -Werror -O2 -g -Wunused -Wunreachable-code -Wno-unused-parameter -Wno-unused-result -Wno-deprecated -fPIC -std=c++11 
-CFLAGS := -Wall -Werror -O2 -g -Wunused -Wunreachable-code -Wno-unused-parameter -Wno-unused-result -Wno-deprecated -fPIC -std=c99
+CXXFLAGS := -Wall -Werror -O0 -g -Wunused -Wunreachable-code -Wno-unused-parameter -Wno-unused-result -Wno-deprecated -fPIC -std=c++11 
+CFLAGS := -Wall -Werror -O0 -g -Wunused -Wunreachable-code -Wno-unused-parameter -Wno-unused-result -Wno-deprecated -fPIC -std=c99
 INCLUDES = -Icommon -I. -Iclient
 
 LINKS	= -L. -ldl -rdynamic -lrt
@@ -31,8 +31,8 @@ SERVER_DEPS := $(server_src_files:.c=.d)
 client_src_files := client/fighter.c
 CLIENT_OBJS := $(client_src_files:.c=.o)
 
-boxer_src_files := fighter/boxer.c
-BOXER_OBJS := $(boxer_src_files:.c=.o)
+boxer_src_files := fighter/boxer.cpp
+BOXER_OBJS := $(boxer_src_files:.cpp=.o)
 
 all: cfserver libclient.so boxer
 

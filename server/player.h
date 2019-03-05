@@ -14,6 +14,7 @@ typedef struct {
 void load_all_players();
 
 player_t * find_player_by_token(const char * token);
+player_t * find_player_by_id(int id);
 
 
 

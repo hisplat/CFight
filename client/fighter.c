@@ -32,13 +32,13 @@ struct gameinfo_t {
     int player_count;
     int player_iterator;
     int current_player;
+    int myplayerid;
 };
 
 static socket_t sock = SOCKET_T_INITIALIZER;
-static int myplayerid = 0;
 static struct gameinfo_t the_game;
 
-static void parse_gameinfo(char * data)
+static char * parse_gameinfo(char * data)
 {
     const int INIT = 0;
     const int INFO = 1;
@@ -74,7 +74,7 @@ static void parse_gameinfo(char * data)
             continue;
         }
 
-        cf_debug("line = [%s]\n", line);
+        // cf_debug("line = [%s]\n", line);
 
         if (strcmp(line, "[info]") == 0) {
             current_status = INFO;
@@ -159,10 +159,21 @@ static void parse_gameinfo(char * data)
             }
         }
     }
+    return end;
 }
 
-static void parse_gameturn(char * data)
+static char * parse_gameturn(char * data)
 {
+    the_game.current_player = atoi(data);
+    
+    return data + strlen(data);
+}
+
+static char * parse_playerid(char * data)
+{
+    the_game.myplayerid = atoi(data);
+    cf_log("my playerid is %d\n", the_game.myplayerid);
+    return data + strlen(data);
 }
 
 int fighter_init(const char * ip, int port)
@@ -173,6 +184,7 @@ int fighter_init(const char * ip, int port)
     the_game.player_count = 0;
     the_game.player_iterator = 0;
     the_game.current_player = 0;
+    the_game.myplayerid = 0;
 
     sock = socket_create_tcp();
     int ret = socket_connect(sock, ip, port);
@@ -194,6 +206,8 @@ int fighter_loop(gameinfo_callback gicb, gameturn_callback gtcb)
         tv.tv_usec = 0;
         FD_SET(socket_fd(sock), &rfds);
         ret = select(socket_fd(sock) + 1, &rfds, NULL, NULL, &tv);
+        // cf_log("%d bytes read.\n", ret);
+
         if (ret < 0) {
             cf_error("select fail: %d:%s\n", errno, strerror(errno));
             break;
@@ -209,28 +223,38 @@ int fighter_loop(gameinfo_callback gicb, gameturn_callback gtcb)
                 break;
             }
             buffer[ret] = '\0';
-            // TODO
-            char * p = buffer;
-            char * data = NULL;
-            while (*p != ' ' && *p != '\n' && *p != '\r' && *p != '\0') {
-                p++;
-            }
-            if (*p != '\0') {
-                data = p + 1;
-                while (*data == '\r' || *data == '\n' || *data == ' ') {
-                    data++;
-                }
-            }
-            *p = '\0';
+            // printf("%s\n", buffer);
 
-            if (strcmp(buffer, "GAME") == 0) {
-                parse_gameinfo(data);
-                gicb(&the_game);
-            } else if (strcmp(buffer, "TURN") == 0) {
-                parse_gameturn(data);
-            } else {
-                cf_warning("unknown command: [%s]\n", buffer);
-                dump(buffer, ret);
+            // TODO
+            char * packet = buffer;
+            while (packet < buffer + ret) {
+                char * p = packet;
+                char * data = NULL;
+                while (*p != ' ' && *p != '\n' && *p != '\r' && *p != '\0') {
+                    p++;
+                }
+                if (*p != '\0') {
+                    data = p + 1;
+                    while (*data == '\r' || *data == '\n' || *data == ' ') {
+                        data++;
+                    }
+                }
+                *p = '\0';
+
+                if (strcmp(packet, "GAME") == 0) {
+                    packet = parse_gameinfo(data);
+                    gicb(&the_game);
+                } else if (strcmp(packet, "TURN") == 0) {
+                    packet = parse_gameturn(data);
+                    gtcb(&the_game, the_game.current_player);
+                } else if (strcmp(packet, "PLAYERID") == 0) {
+                    packet = parse_playerid(data);
+                } else if (*packet == '\0') {
+                    packet ++;
+                } else {
+                    cf_warning("unknown command: [%s]\n", packet);
+                    packet = p + 1;
+                }
             }
         }
     }
@@ -253,6 +277,17 @@ int gameinfo_get_mapwidth(gameinfo info)
 int gameinfo_get_mapheight(gameinfo info)
 {
     return info->height;
+}
+
+int fighter_attack(int x, int y)
+{
+    if (x < 0 || y < 0 || x >= the_game.width || y >= the_game.height) {
+        return -1;
+    }
+    char message[100];
+    snprintf(message, sizeof(message), "ATTACK %d %d\n", x, y);
+    socket_send(sock, message, strlen(message) + 1);
+    return 0;
 }
 
 mapnode gameinfo_get_mapnode(gameinfo info, int x, int y)
@@ -289,9 +324,9 @@ int mapnode_get_hitpoint(mapnode node)
     return node->hitpoint;
 }
 
-int gameinfo_my_playerid()
+int gameinfo_my_playerid(gameinfo info)
 {
-    return myplayerid;
+    return info->myplayerid;
 }
 
 int player_id(player p)

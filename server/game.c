@@ -46,6 +46,8 @@ static int current_client_timeout = 0;
 #define GAME_STATUS_PLAYING 1
 static int game_status = GAME_STATUS_INIT;
 
+typedef void (*game_sender)(const char * message, int len, void * arg);
+
 ////////////
 
 static void reset_current_client()
@@ -69,20 +71,23 @@ static void reset_current_client()
     }
 }
 
-static void broadcast_gameturn()
+static void update_gameturn(game_sender sender, void * arg)
 {
     if (current_client == NULL) {
         return;
     }
 
     char message[100];
-    snprintf(message, sizeof(message), "TURN %d\n\n", current_client->player->id);
+    snprintf(message, sizeof(message), "TURN %d\n", current_client->player->id);
 
+    sender(message, strlen(message) + 1, arg);
+    /*
     client_reset_iterator();
     client_t * client = NULL;
     while ((client = client_next()) != NULL) {
         socket_send(client->socket, message, strlen(message) + 1);
     }
+    */
 }
 
 static void init_game_map()
@@ -116,9 +121,20 @@ static void init_game_map()
     gamemap_changed = 1;
 }
 
-static void broadcast_gamemap()
+static void broadcaster(const char * message, int len, void * arg)
 {
-    char message[4096] = {0};
+    client_t * client = NULL;
+    client_reset_iterator();
+    while ((client = client_next()) != NULL) {
+        int ret = socket_send(client->socket, message, len);
+        char ip[100];
+        cf_debug("%d bytes send to [%s:%d]\n", ret, socket_get_remote_ip(client->socket, ip, sizeof(ip)), socket_get_remote_port(client->socket));
+    }
+}
+
+static void update_gameinfo(game_sender sender, void * arg)
+{
+    char message[40960] = {0};
 
     strcpy(message + strlen(message), "GAME\n");
     sprintf(message + strlen(message), "[info]\n%d %d\n", MAP_WIDTH, MAP_HEIGHT);
@@ -142,19 +158,19 @@ static void broadcast_gamemap()
     sprintf(message + strlen(message), "[players]\n");
 
     client_t * client = NULL;
+    int count = 0;
     client_reset_iterator();
     while ((client = client_next()) != NULL) {
         if (client->player == NULL) {
             continue;
         }
         snprintf(message + strlen(message), sizeof(message) - strlen(message), "%d: %s\n", client->player->id, client->player->name);
+        count++;
     }
     snprintf(message + strlen(message), sizeof(message) - strlen(message), "\n");
 
-    client_reset_iterator();
-    while ((client = client_next()) != NULL) {
-        socket_send(client->socket, message, strlen(message) + 1);
-    }
+    cf_debug("%s\n", message);
+    sender(message, strlen(message) + 1, arg);
 }
 
 
@@ -172,9 +188,13 @@ static void on_client_login(client_t * client, char * token)
             client->player = p;
             client->status = CLIENT_GAME;
             cf_log("player '%s' joined game.\n", p->name);
+
+            char message[100];
+            snprintf(message, sizeof(message), "PLAYERID %d\n", p->id);
+            socket_send(client->socket, message, strlen(message) + 1);
+
             init_game_map();
-            gamemap_changed = 1;
-        } else {
+            gamemap_changed = 1; } else {
             cf_error("Not implemented yet.\n");
         }
     }
@@ -182,6 +202,37 @@ static void on_client_login(client_t * client, char * token)
 
 static void on_client_attack(client_t * client, char * arg)
 {
+    int x = -1;
+    int y = -1;
+    if (sscanf(arg, "%d %d", &x, &y) != 2) {
+        cf_error("invalid attack command: [%s]\n", arg);
+        return;
+    }
+    if (client->player == NULL || client != current_client) {
+        cf_warning("received attack command but not in turn.\n");
+        return;
+    }
+
+    if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
+        cf_warning("not a valid position: (%d, %d)\n", x, y);
+        return;
+    }
+
+    mapnode * node = &(gamemap[y][x]);
+    if (node->playerid == 0) {
+        node->playerid = client->player->id;
+        node->hitpoint = client->player->hit;
+    } else {
+        node->hitpoint -= client->player->attack;
+        if (node->hitpoint <= 0) {
+            node->playerid = client->player->id;
+            node->hitpoint = client->player->hit;
+        }
+    }
+    gamemap_changed = 1;
+
+    client->in_turn = 0;
+    need_reset_current_client = 1;
 }
 
 static void on_client_start(client_t * client, char * arg)
@@ -189,6 +240,32 @@ static void on_client_start(client_t * client, char * arg)
     game_status = GAME_STATUS_PLAYING;
     init_game_map();
     reset_current_client();
+}
+
+static void gamemap_grow()
+{
+    if ((current_game_time % GROW_SPEED) != 0) {
+        return;
+    }
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+        for (int x = 0; x < MAP_WIDTH; x++) {
+            if (gamemap[y][x].playerid == 0) {
+                continue;
+            }
+            player_t * p = find_player_by_id(gamemap[y][x].playerid);
+            client_t * c = find_client_by_player(p);
+            if (c == NULL) {
+                continue;   // player is offline.
+            }
+            gamemap[y][x].hitpoint += p->hit;
+#if HITPOINT_LIMIT
+            if (gamemap[y][x].hitpoint > HITPOINT_LIMIT) {
+                gamemap[y][x].hitpoint = HITPOINT_LIMIT;
+            }
+#endif
+        }
+    }
+    gamemap_changed = 1;
 }
 
 static void on_game_tick()
@@ -216,6 +293,8 @@ static void on_game_tick()
 
     cf_debug("game tick: %d\n", current_game_time);
     current_game_time++;
+    gamemap_grow();
+
     client_t * client = NULL;
     client_reset_iterator();
     while ((client = client_next()) != NULL) {
@@ -233,7 +312,6 @@ static void on_game_tick()
             client->in_turn = 0;
         }
     }
-
 }
 
 void read_client_data(client_t * client)
@@ -364,11 +442,14 @@ int main_loop(int port, unsigned int seed)
         if (need_reset_current_client) {
             reset_current_client();
             need_reset_current_client = 0;
-            broadcast_gameturn();
+            update_gameturn(broadcaster, NULL);
+            cf_log("gameturn broadcasted.");
         }
 
         if (gamemap_changed) {
-            broadcast_gamemap();
+            // broadcast_gamemap();
+            update_gameinfo(broadcaster, NULL);
+            cf_log("gameinfo broadcasted.");
             gamemap_changed = 0;
         }
     }

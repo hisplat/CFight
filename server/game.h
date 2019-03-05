@@ -8,6 +8,7 @@
 #define GROW_SPEED 10
 #define MAX_PARTIES 6
 #define ACTION_TIMEOUT_TICK 3
+#define HITPOINT_LIMIT 0
 
 int main_loop(int port, unsigned int seed);
 

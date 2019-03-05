@@ -34,11 +34,13 @@ CLIENT_OBJS := $(client_src_files:.c=.o)
 boxer_src_files := fighter/boxer.cpp
 creeper_src_files := fighter/creeper.cpp
 chaos_src_files := fighter/chaos.cpp
+kicker_src_files := fighter/kicker.cpp
 BOXER_OBJS := $(boxer_src_files:.cpp=.o)
 CREEPER_OBJS := $(creeper_src_files:.cpp=.o)
 CHAOS_OBJS := $(chaos_src_files:.cpp=.o)
+KICKER_OBJS := $(kicker_src_files:.cpp=.o)
 
-all: cfserver boxer creeper chaos
+all: cfserver boxer creeper chaos kicker
 
 libcommon.a: $(COMMON_OBJS)
 	@echo Linking $@ ...
@@ -75,6 +77,13 @@ chaos: $(CHAOS_OBJS) libclient.a libcommon.a
 	$(LD) $(CHAOS_OBJS) $(LINKS) $(LIBS) libclient.a libcommon.a -o$@
 	@echo -------------------------------------------
 	@echo done.
+
+kicker: $(KICKER_OBJS) libclient.a libcommon.a
+	@echo Linking $@ ...
+	$(LD) $(KICKER_OBJS) $(LINKS) $(LIBS) libclient.a libcommon.a -o$@
+	@echo -------------------------------------------
+	@echo done.
+
 
 cfserver: $(SERVER_OBJS) libcommon.a
 	@echo Linking $@ ...
